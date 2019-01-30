@@ -7,8 +7,6 @@ brew cask install --force minishift
 
 ```
 minishift start  --routing-suffix 127.0.0.1.nip.io --vm-driver=xhyve --memory=8192 --cpus=4 --disk-size=50g  --openshift-version v3.10.0
-or
-minishift start  --routing-suffix 127.0.0.1.nip.io --vm-driver=xhyve --memory=8192 --cpus=4 --disk-size=50g  --openshift-version v3.10.0
 ```
 
 ```
