@@ -1,0 +1,182 @@
+apiVersion: v1
+data:
+  config.yaml: >
+    # Anchore Service Configuration File from ConfigMap
+
+    service_dir: /anchore_service_config
+
+    tmp_dir: "/tmp"
+
+
+    allow_awsecr_iam_auto: false
+
+    cleanup_images: true
+
+
+    log_level: INFO
+
+    host_id: ${ANCHORE_POD_NAME}
+
+    internal_ssl_verify: false
+
+
+    metrics:
+      enabled: false
+
+    # Uncomment if you have a local endpoint that can accept
+
+    # notifications from the anchore-engine, as configured below
+
+    #
+
+
+    webhooks:
+      error_event: {}
+      general: {}
+      password: null
+      policy_eval: {}
+      ssl_verify: true
+      user: null
+
+
+
+    # Configure what feeds to sync. The 'admin' anchoreIO credentials are used
+    if present, but not required.
+
+    # The 'anonymous' user is used for the sync otherwise.
+
+    # The sync will hit http://ancho.re/feeds, if any outbound firewall config
+    needs to be set in your environment.
+
+    feeds:
+      selective_sync:
+        # If enabled only sync specific feeds instead of all that are found.
+        enabled: True
+        feeds:
+          # Vulnerabilities feed is the feed for distro cve sources (redhat, debian, ubuntu, oracle, alpine....)
+          vulnerabilities: True
+          # NVD Data is used for non-distro CVEs (jars, npm, etc) that are not packaged and released by distros as rpms, debs, etc
+          nvd: True
+          # Warning: enabling the package sync causes the service to require much
+          #   more memory to do process the significant data volume. We recommend at least 4GB available for the container
+          packages: False
+    #  anonymous_user_username: anon@ancho.re
+
+    #  anonymous_user_password: pbiU2RYZ2XrmYQ
+
+    #  url: 'https://ancho.re/v1/service/feeds'
+
+    #  client_url: 'https://ancho.re/v1/account/users'
+
+    #  token_url: 'https://ancho.re/oauth/token'
+
+    #  connection_timeout_seconds: 3
+
+    #  read_timeout_seconds: 60
+
+
+    credentials:
+      users:
+        admin:
+          password: ${ANCHORE_ADMIN_PASSWORD}
+          email: admin@myemail.com
+          external_service_auths:
+
+          auto_policy_sync: false
+
+      database:
+
+        db_connect: 'postgresql+pg8000://${ANCHORE_DB_USER}:${ANCHORE_DB_PASSWORD}@anchore-db:5432/anchore'
+
+        db_connect_args:
+          timeout: 120
+          ssl:
+        db_pool_size: 30
+        db_pool_max_overflow: 30
+    services:
+      analyzer:
+        enabled: true
+        endpoint_hostname: localhost
+        listen: '0.0.0.0'
+        port: 8084
+        cycle_timer_seconds: 1
+        max_threads: 1
+        analyzer_driver: nodocker
+        ssl_cert: /certs/tls.crt
+        ssl_key: /certs/tls.key
+        ssl_enable: false
+      apiext:
+        enabled: True
+        require_auth: True
+        endpoint_hostname: localhost
+        listen: '0.0.0.0'
+        port: 8228
+        ssl_enable: false
+        ssl_cert: /certs/tls.crt
+        ssl_key: /certs/tls.key
+      kubernetes_webhook:
+        enabled: True
+        require_auth: False
+        endpoint_hostname: localhost
+        listen: '0.0.0.0'
+        port: 8338
+        ssl_enable: false
+        ssl_cert: /certs/tls.crt
+        ssl_key: /certs/tls.key
+      catalog:
+        enabled: True
+        require_auth: True
+        endpoint_hostname: localhost
+        listen: '0.0.0.0'
+        port: 8082
+        use_db: True
+        cycle_timer_seconds: '1'
+        cycle_timers:
+          analyzer_queue: 1
+          feed_sync: 14400
+          image_watcher: 3600
+          notifications: 30
+          policy_bundle_sync: 300
+          policy_eval: 3600
+          service_watcher: 15
+
+        ssl_enable: false
+        ssl_cert: /certs/tls.crt
+        ssl_key: /certs/tls.key
+        event_log:
+          notification:
+            enabled: true
+            level:
+            - error
+
+        archive:
+          compression:
+            enabled: true
+            min_size_kbytes: 100
+          storage_driver:
+            config: {}
+            name: db
+
+      simplequeue:
+        enabled: True
+        require_auth: True
+        endpoint_hostname: localhost
+        listen: '0.0.0.0'
+        port: 8083
+        ssl_enable: false
+        ssl_cert: /certs/tls.crt
+        ssl_key: /certs/tls.key
+      policy_engine:
+        enabled: True
+        require_auth: True
+        endpoint_hostname: localhost
+        listen: '0.0.0.0'
+        port: 8087
+        ssl_cert: /certs/tls.crt
+        ssl_key: /certs/tls.key
+        ssl_enable: false
+kind: ConfigMap
+metadata:
+  labels:
+    app: anchore-engine
+  name: anchore-engine-core

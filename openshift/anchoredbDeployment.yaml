@@ -1,0 +1,82 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: postgresql-persistent
+  name: anchore-db
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    name: anchore-db
+  strategy:
+    activeDeadlineSeconds: 21600
+    recreateParams:
+      timeoutSeconds: 600
+    resources: {}
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: anchore-db
+    spec:
+      containers:
+      - env:
+        - name: POSTGRESQL_USER
+          valueFrom:
+            secretKeyRef:
+              key: dbUser
+              name: anchore-engine
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+             secretKeyRef:
+               key: dbPassword
+               name: anchore-engine
+        - name: POSTGRESQL_DATABASE
+          value: anchore
+        image: 172.30.1.1:5000/openshift/postgresql@sha256:861641cbe1b2bde14aab3ced45c7f0da0f66ecc94f4e5b6e4f166a0a3dba93e8
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - /usr/libexec/check-container
+            - --live
+          failureThreshold: 3
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 10
+        name: postgresql
+        ports:
+        - containerPort: 5432
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /usr/libexec/check-container
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            memory: 512Mi
+        securityContext:
+          capabilities: {}
+          privileged: false
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/lib/pgsql/data
+          name: anchore-db-data
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: anchore-db-data
+        persistentVolumeClaim:
+          claimName: anchore-db
